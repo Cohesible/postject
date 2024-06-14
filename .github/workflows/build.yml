@@ -1,0 +1,28 @@
+name: Build Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container:
+      image: emscripten/emsdk:latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+      - uses: actions/upload-artifact@v3
+        with:
+          name: postject
+          path: dist/
+          if-no-files-found: error
+
+

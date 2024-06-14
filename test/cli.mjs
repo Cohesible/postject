@@ -1,6 +1,6 @@
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const { inject } = require("..");
+const { inject, remove } = require("..");
 
 import { spawnSync, execSync } from "child_process";
 import * as crypto from "crypto";
@@ -14,6 +14,23 @@ chai.use(chaiAsPromised);
 import fs from "fs-extra";
 import rimraf from "rimraf";
 import { temporaryDirectory } from "tempy";
+
+async function verifyCodeSign(filename) {
+  if (process.platform === "darwin") {
+    let codesignFound = false;
+    try {
+      execSync("command -v codesign");
+      codesignFound = true;
+    } catch (err) {
+      console.log(err.message);
+    }
+    if (codesignFound) {
+      execSync(`codesign --sign - ${filename}`);
+      execSync(`codesign --verify ${filename}`);
+    }
+  }
+  // TODO(RaisinTen): Test code signing on Windows.
+}
 
 // TODO - More test coverage
 describe("postject CLI", () => {
@@ -91,23 +108,7 @@ describe("postject CLI", () => {
       expect(status).to.equal(0);
     }
 
-    // Verifying code signing using a self-signed certificate.
-    {
-      if (process.platform === "darwin") {
-        let codesignFound = false;
-        try {
-          execSync("command -v codesign");
-          codesignFound = true;
-        } catch (err) {
-          console.log(err.message);
-        }
-        if (codesignFound) {
-          execSync(`codesign --sign - ${filename}`);
-          execSync(`codesign --verify ${filename}`);
-        }
-      }
-      // TODO(RaisinTen): Test code signing on Windows.
-    }
+    await verifyCodeSign(filename)
 
     // After injection
     {
@@ -210,23 +211,7 @@ describe("postject API", () => {
       });
     }
 
-    // Verifying code signing using a self-signed certificate.
-    {
-      if (process.platform === "darwin") {
-        let codesignFound = false;
-        try {
-          execSync("command -v codesign");
-          codesignFound = true;
-        } catch (err) {
-          console.log(err.message);
-        }
-        if (codesignFound) {
-          execSync(`codesign --sign - ${filename}`);
-          execSync(`codesign --verify ${filename}`);
-        }
-      }
-      // TODO(RaisinTen): Test code signing on Windows.
-    }
+    await verifyCodeSign(filename)
 
     // After injection
     {
@@ -234,6 +219,32 @@ describe("postject API", () => {
       expect(status).to.equal(0);
       expect(stdout).to.have.string(resourceContents);
     }
+  }).timeout(15_000);
+
+
+  it("removes injected resources", async () => {
+    {
+      const resourceData = await fs.readFile(resourceFilename);
+      await inject(filename, "foobar", resourceData, {
+        sentinelFuse: "NODE_JS_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
+      });
+    }
+
+    {
+      const resourceData = await fs.readFile(resourceFilename);
+      await remove(filename, "foobar", resourceData, {
+        sentinelFuse: "NODE_JS_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
+      });
+    }
+
+    await verifyCodeSign(filename)
+
+    {
+      const { status, stdout } = spawnSync(filename, { encoding: "utf-8" });
+      expect(status).to.equal(0);
+      expect(stdout).to.have.string("Hello world");
+    }
+    
   }).timeout(15_000);
 });
 

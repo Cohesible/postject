@@ -34,7 +34,7 @@ await $`cmake --build . -j ${jobs}`;
 
 // Bundle api.js and copy artifacts to dist
 await fs.copy("../src/api.js", "api.js");
-await $`esbuild api.js --bundle --platform=node --outfile=../dist/api.js`;
+await $`esbuild api.js --minify --bundle --platform=node --outfile=../dist/api.js`;
 await fs.copy("../src/cli.js", "../dist/cli.js");
 await fs.copy("../postject-api.h", "../dist/postject-api.h");
 
