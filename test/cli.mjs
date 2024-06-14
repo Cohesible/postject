@@ -232,7 +232,7 @@ describe("postject API", () => {
 
     {
       const resourceData = await fs.readFile(resourceFilename);
-      await remove(filename, "foobar", resourceData, {
+      await remove(filename, "foobar", {
         sentinelFuse: "NODE_JS_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
       });
     }

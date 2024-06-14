@@ -20,10 +20,12 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test
+      - run: mkdir pkg
+      - run: tar -xzf $(npm pack) -C pkg
       - uses: actions/upload-artifact@v3
         with:
           name: postject
-          path: dist/
+          path: pkg/
           if-no-files-found: error
 
 
